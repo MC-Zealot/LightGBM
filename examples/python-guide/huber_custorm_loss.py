@@ -47,6 +47,18 @@ def mse_custom_train(preds, data):
 
     return grad, hess
 
+def huber_custom_train_v2(preds, data):
+
+    y_true = data.get_label()
+    y_pred = preds
+    residual = (y_pred - y_true).astype("float")
+
+    alpha = .9
+
+    grad = np.where(np.abs(residual) <= alpha, residual, np.sign(residual) * alpha)
+    hess = np.where(residual < 0, 1. * 1., 1. * 1.)
+
+    return grad, hess
 
 def mse_custom_eval(preds, data):
     y_true = data.get_label()
@@ -57,10 +69,22 @@ def mse_custom_eval(preds, data):
     return "mse_custom", np.mean(loss), False
 
 
+def huber_custom_eval_v2(preds, data):
+    y_true = data.get_label()
+    y_pred = preds
+    residual = (y_pred - y_true).astype("float")
+    alpha = .9
+    loss = np.where(np.abs(residual) <= alpha, .5 * ((residual) ** 2), alpha * np.abs(residual) - .5 * (alpha ** 2))
+
+    return "huber_custom", np.mean(loss), False
+
+
 params = {
-    'objective': mse_custom_train,
+    'objective': huber_custom_train_v2,
     'metric': ["mse"],
     'learning_rate': .1,
+    'early_stopping_rounds=100':100,
+    'verbose_eval':100
 }
 
 model = lgbm.train(
@@ -70,9 +94,7 @@ model = lgbm.train(
     valid_sets=[X_train_lgbm, X_valid_lgbm, ],
     valid_names=None,
     init_model=None,
-    feval=mse_custom_eval,
-    # feature_name='auto',
-    # categorical_feature='auto',
+    feval=huber_custom_eval_v2,
     keep_training_booster=False,
     callbacks=None,
 )
