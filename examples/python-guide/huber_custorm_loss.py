@@ -3,6 +3,7 @@ import pandas as pd
 import sklearn
 from sklearn import *
 import lightgbm as lgbm
+from sklearn.metrics import auc, mean_squared_error, roc_curve
 
 np.random.seed(0)
 
@@ -87,7 +88,7 @@ params = {
     'verbose_eval':100
 }
 
-model = lgbm.train(
+gbm = lgbm.train(
     params=params,
     train_set=X_train_lgbm,
     num_boost_round=1000,
@@ -98,3 +99,11 @@ model = lgbm.train(
     keep_training_booster=False,
     callbacks=None,
 )
+
+print('Starting predicting...')
+# predict
+y_pred = gbm.predict(X_valid, num_iteration=gbm.best_iteration)
+# eval
+mse = mean_squared_error(y_valid, y_pred)
+print(f'The mse of prediction is: {mse}')
+
