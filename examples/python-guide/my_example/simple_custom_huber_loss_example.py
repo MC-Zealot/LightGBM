@@ -21,6 +21,15 @@ def huber_custom_train_v2(preds, data):
 
     return grad, hess
 
+def gradient_hessian(preds, data):
+    alpha = .9
+    y_true = data.get_label()
+    residual = (preds - y_true).astype('float')
+    gradient = np.where(np.abs(residual) <= alpha, residual, np.sign(residual) * alpha)
+    hessian = np.ones(preds.shape)
+
+    return gradient, hessian
+
 def huber_custom_eval_v2(preds, data):
     y_true = data.get_label()
     y_pred = preds

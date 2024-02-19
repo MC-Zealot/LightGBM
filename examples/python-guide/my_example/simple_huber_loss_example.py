@@ -25,6 +25,7 @@ lgb_eval = lgb.Dataset(X_test, y_test, reference=lgb_train)
 params = {
     'boosting_type': 'gbdt',
     'objective': 'huber',
+    'alpha':0.5,
     'metric': {'l2', 'l1'},
     'num_leaves': 31,
     'learning_rate': 0.05,
