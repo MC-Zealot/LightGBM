@@ -32,7 +32,7 @@ def huber_custom_eval_v2(preds, data):
 
 print('Loading data...')
 # load or create your dataset
-regression_example_dir = Path(__file__).absolute().parents[1] / 'regression'
+regression_example_dir = Path(__file__).absolute().parents[1] / '../regression'
 df_train = pd.read_csv(str(regression_example_dir / 'regression.train'), header=None, sep='\t')
 df_test = pd.read_csv(str(regression_example_dir / 'regression.test'), header=None, sep='\t')
 
