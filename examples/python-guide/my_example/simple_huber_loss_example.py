@@ -8,7 +8,7 @@ import lightgbm as lgb
 
 print('Loading data...')
 # load or create your dataset
-regression_example_dir = Path(__file__).absolute().parents[1] / 'regression'
+regression_example_dir = Path(__file__).absolute().parents[1] / '../regression'
 df_train = pd.read_csv(str(regression_example_dir / 'regression.train'), header=None, sep='\t')
 df_test = pd.read_csv(str(regression_example_dir / 'regression.test'), header=None, sep='\t')
 
@@ -24,7 +24,7 @@ lgb_eval = lgb.Dataset(X_test, y_test, reference=lgb_train)
 # specify your configurations as a dict
 params = {
     'boosting_type': 'gbdt',
-    'objective': 'regression',
+    'objective': 'huber',
     'metric': {'l2', 'l1'},
     'num_leaves': 31,
     'learning_rate': 0.05,
@@ -51,4 +51,6 @@ print('Starting predicting...')
 y_pred = gbm.predict(X_test, num_iteration=gbm.best_iteration)
 # eval
 rmse_test = mean_squared_error(y_test, y_pred) ** 0.5
+mse_test = mean_squared_error(y_test, y_pred)
 print(f'The RMSE of prediction is: {rmse_test}')
+print(f'The MSE of prediction is: {mse_test}')
