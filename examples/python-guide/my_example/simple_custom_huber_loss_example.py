@@ -8,17 +8,16 @@ import lightgbm as lgb
 import numpy as np
 from scipy import special, optimize
 
-
 def logloss_init_score(y):
     p = y.mean()
     p = np.clip(p, 1e-15, 1 - 1e-15)  # never hurts
     log_odds = np.log(p / (1 - p))
     return log_odds
 
-def logloss_init_score_v2(y_true):
+def logloss_init_score_v2(self,y_true):
     # 样本初始值寻找过程
     res = optimize.minimize_scalar(
-        lambda p: (y_true, p).sum(),
+        lambda p: self(y_true, p).sum(),
         bounds=(0, 1),
         method='bounded'
     )
@@ -69,11 +68,11 @@ X_train = df_train.drop(0, axis=1)
 X_test = df_test.drop(0, axis=1)
 
 # create dataset for lightgbm
-lgb_train = lgb.Dataset(X_train, y_train, init_score=np.full_like(y_train, logloss_init_score_v2(y_train), dtype=float))
-lgb_eval = lgb.Dataset(X_test, y_test, reference=lgb_train, init_score=np.full_like(y_test, logloss_init_score_v2(y_test), dtype=float))
+# lgb_train = lgb.Dataset(X_train, y_train, init_score=np.full_like(y_train, logloss_init_score(y_train), dtype=float))
+# lgb_eval = lgb.Dataset(X_test, y_test, reference=lgb_train, init_score=np.full_like(y_test, logloss_init_score(y_test), dtype=float))
 
-# lgb_train = lgb.Dataset(X_train, y_train)
-# lgb_eval = lgb.Dataset(X_test, y_test)
+lgb_train = lgb.Dataset(X_train, y_train)
+lgb_eval = lgb.Dataset(X_test, y_test)
 
 # specify your configurations as a dict
 params = {
@@ -92,7 +91,7 @@ print('Starting training...')
 # train
 gbm = lgb.train(params,
                 lgb_train,
-                num_boost_round=20,
+                num_boost_round=35,
                 valid_sets=lgb_eval,
                 feval=huber_custom_eval_v2,
                 callbacks=[lgb.early_stopping(stopping_rounds=5)])
