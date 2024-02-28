@@ -6,7 +6,25 @@ from sklearn.metrics import mean_squared_error
 
 import lightgbm as lgb
 import numpy as np
+from scipy import special, optimize
 
+
+def logloss_init_score(y):
+    p = y.mean()
+    p = np.clip(p, 1e-15, 1 - 1e-15)  # never hurts
+    log_odds = np.log(p / (1 - p))
+    return log_odds
+
+def logloss_init_score_v2(y_true):
+    # 样本初始值寻找过程
+    res = optimize.minimize_scalar(
+        lambda p: (y_true, p).sum(),
+        bounds=(0, 1),
+        method='bounded'
+    )
+    p = res.x
+    log_odds = np.log(p / (1 - p))
+    return log_odds
 
 def huber_custom_train_v2(preds, data):
 
@@ -34,7 +52,7 @@ def huber_custom_eval_v2(preds, data):
     y_true = data.get_label()
     y_pred = preds
     residual = (y_pred - y_true).astype("float")
-    alpha = .9
+    alpha = 0.9
     loss = np.where(np.abs(residual) <= alpha, .5 * ((residual) ** 2), alpha * np.abs(residual) - .5 * (alpha ** 2))
 
     return "huber_custom", np.mean(loss), False
@@ -51,8 +69,11 @@ X_train = df_train.drop(0, axis=1)
 X_test = df_test.drop(0, axis=1)
 
 # create dataset for lightgbm
-lgb_train = lgb.Dataset(X_train, y_train)
-lgb_eval = lgb.Dataset(X_test, y_test, reference=lgb_train)
+lgb_train = lgb.Dataset(X_train, y_train, init_score=np.full_like(y_train, logloss_init_score_v2(y_train), dtype=float))
+lgb_eval = lgb.Dataset(X_test, y_test, reference=lgb_train, init_score=np.full_like(y_test, logloss_init_score_v2(y_test), dtype=float))
+
+# lgb_train = lgb.Dataset(X_train, y_train)
+# lgb_eval = lgb.Dataset(X_test, y_test)
 
 # specify your configurations as a dict
 params = {
