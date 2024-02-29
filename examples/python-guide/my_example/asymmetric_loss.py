@@ -8,53 +8,21 @@ import lightgbm as lgb
 import numpy as np
 from scipy import special, optimize
 
-def logloss_init_score(y):
-    p = y.mean()
-    p = np.clip(p, 1e-15, 1 - 1e-15)  # never hurts
-    log_odds = np.log(p / (1 - p))
-    return log_odds
 
-def logloss_init_score_v2(y_true):
-    # 样本初始值寻找过程
-    res = optimize.minimize_scalar(
-        lambda p: y_true, p.sum(),
-        bounds=(0, 1),
-        method='bounded'
-    )
-    p = res.x
-    log_odds = np.log(p / (1 - p))
-    return log_odds
-
-def huber_custom_train_v2(preds, data):
-
-    y_true = data.get_label()
-    y_pred = preds
-    residual = (y_pred - y_true).astype("float")
-
-    alpha = .9
-
-    grad = np.where(np.abs(residual) <= alpha, residual, np.sign(residual) * alpha)
-    hess = np.where(residual < 0, 1. * 1., 1. * 1.)
-
+# define cost and eval functions
+def custom_asymmetric_train(y_pred, y_true):
+    y_true = y_true.get_label()
+    residual = (y_true - y_pred).astype("float")
+    grad = np.where(residual < 0, -2 * residual, -2 * residual * 1.15)
+    hess = np.where(residual < 0, 2, 2 * 1.15)
     return grad, hess
 
-def gradient_hessian(preds, data):
-    alpha = .9
-    y_true = data.get_label()
-    residual = (preds - y_true).astype('float')
-    gradient = np.where(np.abs(residual) <= alpha, residual, np.sign(residual) * alpha)
-    hessian = np.ones(preds.shape)
+def custom_asymmetric_valid(y_pred, y_true):
+    y_true = y_true.get_label()
+    residual = (y_true - y_pred).astype("float")
+    loss = np.where(residual < 0, (residual ** 2) , (residual ** 2) * 1.15)
+    return "custom_asymmetric_eval", np.mean(loss), False
 
-    return gradient, hessian
-
-def huber_custom_eval_v2(preds, data):
-    y_true = data.get_label()
-    y_pred = preds
-    residual = (y_pred - y_true).astype("float")
-    alpha = 0.9
-    loss = np.where(np.abs(residual) <= alpha, .5 * ((residual) ** 2), alpha * np.abs(residual) - .5 * (alpha ** 2))
-
-    return "huber_custom", np.mean(loss), False
 
 print('Loading data...')
 # load or create your dataset
@@ -77,7 +45,7 @@ lgb_eval = lgb.Dataset(X_test, y_test)
 # specify your configurations as a dict
 params = {
     'boosting_type': 'gbdt',
-    'objective': huber_custom_train_v2,
+    'objective': custom_asymmetric_train,
     'metric': {'l2', 'l1'},
     'num_leaves': 31,
     'learning_rate': 0.05,
@@ -93,7 +61,7 @@ gbm = lgb.train(params,
                 lgb_train,
                 num_boost_round=35,
                 valid_sets=lgb_eval,
-                feval=huber_custom_eval_v2,
+                feval=custom_asymmetric_valid,
                 callbacks=[lgb.early_stopping(stopping_rounds=5)])
 
 print('Saving model...')
