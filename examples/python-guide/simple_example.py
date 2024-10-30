@@ -52,3 +52,5 @@ y_pred = gbm.predict(X_test, num_iteration=gbm.best_iteration)
 # eval
 rmse_test = mean_squared_error(y_test, y_pred) ** 0.5
 print(f'The RMSE of prediction is: {rmse_test}')
+mse_test = mean_squared_error(y_test, y_pred)
+print(f'The MSE of prediction is: {mse_test}')
